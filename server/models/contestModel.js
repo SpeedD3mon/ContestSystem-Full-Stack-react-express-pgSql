@@ -94,7 +94,7 @@ export const getContestList = async () => {
 export const getEndedUnprocessedContests = async () => {
   const res = await pool.query(`
     SELECT * FROM contests
-    WHERE end_at < NOW() AND prizes_processed = false
+    WHERE ends_at < NOW() AND prizes_processed = false
   `);
   return res.rows;
 };
