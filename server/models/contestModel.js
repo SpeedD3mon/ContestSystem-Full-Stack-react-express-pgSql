@@ -92,15 +92,15 @@ export const getContestList = async () => {
 }
 
 export const getEndedUnprocessedContests = async () => {
-  const res = await db.query(`
+  const res = await pool.query(`
     SELECT * FROM contests
-    WHERE end_time < NOW() AND prizes_processed = false
+    WHERE end_at < NOW() AND prizes_processed = false
   `);
   return res.rows;
 };
 
 export const markContestProcessed = async (contestId) => {
-  await db.query(`
+  await pool.query(`
     UPDATE contests SET prizes_processed = true
     WHERE contest_id = $1
   `, [contestId]);
