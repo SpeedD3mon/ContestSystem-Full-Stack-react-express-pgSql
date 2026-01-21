@@ -1,0 +1,49 @@
+version: "3.9"  # Docker Compose format version, supports volume mounting and environment variables
+
+services:
+  server:
+    build: ./server              # Build image from Dockerfile in `./server` directory
+    command: npm run dev         # Run server in development mode (with hot-reloading via nodemon)
+    volumes:
+      - ./server:/app           # Mount local code into container at `/app`, allowing live edits
+      - /app/node_modules       # Prevent container from overwriting `node_modules` folder
+    ports:
+      - "5000:5000"             # Map host port 5000 to container port 5000 (for API server)
+    environment:
+      - NODE_ENV=development   # Set environment to development for dev tools and logs
+      - PGHOST=db              # Connect to PostgreSQL service named `db`
+      - PGUSER=appuser         # Database user credential
+      - PGPASSWORD=apppassword # Database password (same as in db container)
+      - PGDATABASE=appdb       # Database name (same as defined in db container)
+      - PGPORT=5432            # Postgres default port
+    depends_on:
+      - db                     # Ensure PostgreSQL service starts before server
+
+  client:
+    build: ./client             # Build image from Dockerfile in `./client` directory
+    command: npm run dev        # Start Vite development server for frontend (live-reload)
+    volumes:
+      - ./client:/app          # Mount local code into container at `/app`, allowing live edits
+      - /app/node_modules      # Prevent container from overwriting `node_modules`
+    ports:
+      - "3000:3000"            # Map host port 3000 to container port 3000 (for frontend)
+    environment:
+      - NODE_ENV=development   # Set dev environment for frontend tools
+      - CHOKIDAR_USEPOLLING=true  # Required for file-watching in Docker containers
+    depends_on:
+      - server                 # Ensure backend server is running before starting client
+
+  db:
+    image: postgres:15         # Use PostgreSQL 15 as database image
+    environment:
+      POSTGRES_USER: appuser   # Database user (used by server to connect)
+      POSTGRES_PASSWORD: apppassword # Database password
+      POSTGRES_DB: appdb       # Default database name used by the app
+    ports:
+      - "5432:5432"            # exposing data base for local pg admin
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # Persist data across container restarts
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  pgdata:                      # Named volume for persistent PostgreSQL storage 
