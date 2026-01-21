@@ -1,0 +1,342 @@
+openapi: 3.0.0
+info:
+  title: Contest System API
+  version: 1.0.0
+  description: API documentation for the Contest System (React + Express + PostgreSQL)
+
+servers:
+  - url: http://localhost:5000/api
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Contests
+  - name: Admin
+  - name: Attempts
+  - name: Leaderboard
+  - name: DB
+
+paths:
+  # =========================
+  # Auth Routes
+  # =========================
+  /users/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, vip, signed-in]
+      responses:
+        201:
+          description: User created successfully
+        400:
+          description: Missing fields
+
+  /users/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login successful
+        401:
+          description: Invalid credentials
+
+  /users/refresh-token:
+    post:
+      summary: Refresh JWT token
+      tags: [Auth]
+      responses:
+        200:
+          description: Token refreshed successfully
+        401:
+          description: Invalid or expired refresh token
+
+  /users/history:
+    get:
+      summary: Get logged-in user's contest history
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: User history retrieved
+
+  /users:
+    get:
+      summary: Get all users (admin only)
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of all users
+
+  # =========================
+  # Admin Routes
+  # =========================
+  /admin/contests:
+    get:
+      summary: Get all contests (admin)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of contests
+    post:
+      summary: Create a new contest
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                access_level:
+                  type: string
+                  enum: [normal, vip]
+                prize:
+                  type: string
+                starts_at:
+                  type: string
+                  format: date-time
+                ends_at:
+                  type: string
+                  format: date-time
+      responses:
+        201:
+          description: Contest created successfully
+
+  /admin/contests/{contestId}/start:
+    post:
+      summary: Start a contest (admin)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: contestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Contest started
+
+  # =========================
+  # Contest Routes
+  # =========================
+  /contests:
+    get:
+      summary: Get all contests (public)
+      tags: [Contests]
+      responses:
+        200:
+          description: List of contests
+
+  /contests/playable:
+    get:
+      summary: Get contests playable by logged-in user
+      tags: [Contests]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of playable contests
+
+  /contests/{id}:
+    get:
+      summary: Get contest details
+      tags: [Contests]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Contest details
+
+  /contests/{contestId}/start:
+    post:
+      summary: Start contest for a user
+      tags: [Contests]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: contestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Contest started for user
+
+  # =========================
+  # Attempt Routes
+  # =========================
+  /attempts/start/{contestId}:
+    post:
+      summary: Start a contest attempt
+      tags: [Attempts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: contestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Attempt started
+
+  /attempts/{attemptId}/questions:
+    get:
+      summary: Get questions for a contest attempt
+      tags: [Attempts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: List of questions
+
+  /attempts/{attemptId}/submit:
+    post:
+      summary: Submit contest attempt
+      tags: [Attempts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      question_id:
+                        type: integer
+                      selected_options:
+                        type: array
+                        items:
+                          type: integer
+      responses:
+        200:
+          description: Attempt submitted
+
+  /attempts/{attemptId}/discard:
+    post:
+      summary: Discard attempt
+      tags: [Attempts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Attempt discarded
+
+  # =========================
+  # Leaderboard Routes
+  # =========================
+  /leaderboard/global:
+    get:
+      summary: Get global leaderboard
+      tags: [Leaderboard]
+      responses:
+        200:
+          description: Global leaderboard
+
+  /leaderboard/contest/{contestId}:
+    get:
+      summary: Get leaderboard for specific contest
+      tags: [Leaderboard]
+      parameters:
+        - in: path
+          name: contestId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Contest leaderboard
+
+  # =========================
+  # DB Check Route
+  # =========================
+  /db/check-connection:
+    get:
+      summary: Check database connection
+      tags: [DB]
+      responses:
+        200:
+          description: Database connection successful
+        503:
+          description: Database connection failed

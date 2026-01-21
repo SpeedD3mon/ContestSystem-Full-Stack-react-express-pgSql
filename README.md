@@ -7,3 +7,5 @@
 ## Run Project
 ```bash
 docker compose up --build
+
+added api yaml file has all the apis mention it 
